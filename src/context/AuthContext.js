@@ -1,8 +1,7 @@
-// AI-assisted: see docs/AI_LOG.md #1
+// AI-assisted: see docs/AI_LOG.md #1, #11
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-import * as authService from '../services/authService.js';
-import { clearSession, loadSession, saveSession } from '../services/storage.js';
+import * as authService from '../services/authService';
 
 // Sesión del conductor compartida con useContext (requisito del proyecto).
 // RootNavigator lee `status` para decidir qué pantallas mostrar.
@@ -18,45 +17,22 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [status, setStatus] = useState(AUTH_STATUS.RESTORING);
 
-  // Al abrir la app se recupera la sesión guardada y se comprueba con el servidor.
-  // La limpieza evita actualizar el estado si el proveedor se desmonta antes de terminar.
+  // Firebase avisa en tiempo real si hay sesión (también al abrir la app con una sesión guardada).
+  // La limpieza cancela la suscripción cuando el proveedor se desmonta.
   useEffect(() => {
-    let isActive = true;
-
-    async function restore() {
-      const storedSession = await loadSession();
-      const restoredSession = storedSession ? await authService.restoreSession(storedSession).catch(() => null) : null;
-      if (storedSession && !restoredSession) {
-        await clearSession();
-      }
-      if (isActive) {
-        setSession(restoredSession);
-        setStatus(restoredSession ? AUTH_STATUS.SIGNED_IN : AUTH_STATUS.SIGNED_OUT);
-      }
-    }
-
-    restore();
-    return () => {
-      isActive = false;
-    };
+    const unsubscribe = authService.subscribeToSession((nextSession) => {
+      setSession(nextSession);
+      setStatus(nextSession ? AUTH_STATUS.SIGNED_IN : AUTH_STATUS.SIGNED_OUT);
+    });
+    return unsubscribe;
   }, []);
 
-  // Lanza el ServiceError del servicio para que la pantalla de login muestre el mensaje.
-  const signIn = useCallback(async (credentials) => {
-    const newSession = await authService.signIn(credentials);
-    await saveSession(newSession);
-    setSession(newSession);
-    setStatus(AUTH_STATUS.SIGNED_IN);
-  }, []);
+  // Lanzan el ServiceError del servicio para que la pantalla muestre el mensaje.
+  const signIn = useCallback((credentials) => authService.signIn(credentials), []);
+  const signUp = useCallback((credentials) => authService.signUp(credentials), []);
+  const signOut = useCallback(() => authService.signOut().catch(() => undefined), []);
 
-  const signOut = useCallback(async () => {
-    await authService.signOut().catch(() => undefined);
-    await clearSession();
-    setSession(null);
-    setStatus(AUTH_STATUS.SIGNED_OUT);
-  }, []);
-
-  const value = useMemo(() => ({ session, status, signIn, signOut }), [session, status, signIn, signOut]);
+  const value = useMemo(() => ({ session, status, signIn, signUp, signOut }), [session, status, signIn, signUp, signOut]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

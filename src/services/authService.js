@@ -1,37 +1,48 @@
-// AI-assisted: see docs/AI_LOG.md #1
-// Autenticación del conductor. Única puerta de entrada al servidor para la sesión.
+// AI-assisted: see docs/AI_LOG.md #1, #11
+// Autenticación del conductor con Firebase Authentication (correo y contraseña).
+import {
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut as firebaseSignOut,
+  signInWithEmailAndPassword,
+} from 'firebase/auth';
+
 import { normalizeEmail } from '../utils/validators.js';
-import { findDriverByEmail, findDriverById, simulateLatency } from './mock/mockServer.js';
-import { ERROR_CODES, ServiceError, toServiceError } from './serviceError.js';
+import { ensureDriverProfile } from './driverService';
+import { auth } from './firebase/auth';
+import { toServiceError } from './serviceError.js';
 
-const createSessionToken = (driverId) => `mock-${driverId}-${Date.now().toString(36)}`;
+const toSession = (user) => (user ? { uid: user.uid, email: user.email } : null);
 
-// Devuelve la sesión { driverId, email, token } o lanza ServiceError.
+// Escucha la sesión en tiempo real; devuelve la función para dejar de escuchar.
+export function subscribeToSession(callback) {
+  return onAuthStateChanged(auth, (user) => callback(toSession(user)));
+}
+
+// Firebase responde con el mismo error si el correo no existe o la contraseña no coincide.
 export async function signIn({ email, password }) {
   try {
-    await simulateLatency();
-    const driver = findDriverByEmail(normalizeEmail(email));
-
-    // Mismo error si el correo no existe o la contraseña no coincide: no revela qué cuentas existen.
-    if (!driver || driver.password !== password) {
-      throw new ServiceError(ERROR_CODES.INVALID_CREDENTIALS);
-    }
-
-    return { driverId: driver.id, email: driver.email, token: createSessionToken(driver.id) };
+    await signInWithEmailAndPassword(auth, normalizeEmail(email), password);
   } catch (error) {
     throw toServiceError(error);
   }
 }
 
-// Comprueba que la sesión guardada en el dispositivo siga siendo válida; si no, devuelve null.
-export async function restoreSession(session) {
-  if (!session?.driverId || !session?.token) {
-    return null;
+// Crea la cuenta y el documento del conductor en estado "Registro incompleto".
+export async function signUp({ email, password }) {
+  try {
+    const credential = await createUserWithEmailAndPassword(auth, normalizeEmail(email), password);
+    await ensureDriverProfile(credential.user.uid, credential.user.email);
+  } catch (error) {
+    throw toServiceError(error);
   }
-  await simulateLatency(300);
-  return findDriverById(session.driverId) ? session : null;
 }
 
 export async function signOut() {
-  await simulateLatency(200);
+  await firebaseSignOut(auth);
+}
+
+// Token que el backend verifica antes de crear un cobro.
+export async function getIdToken() {
+  return auth.currentUser ? auth.currentUser.getIdToken() : null;
 }
