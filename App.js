@@ -1,5 +1,7 @@
-// AI-assisted: see docs/AI_LOG.md #1
+// AI-assisted: see docs/AI_LOG.md #1, #11
 import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import { StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { COLORS } from './src/constants/theme.js';
@@ -25,17 +27,25 @@ const documentTitle = {
   formatter: (options) => (options?.title ? `${options.title} · UberClone Conductor` : 'UberClone Conductor'),
 };
 
-// Punto de entrada: preferencias (idioma) -> sesión del conductor -> navegación.
+// Punto de entrada: gestos (para el Drawer) -> preferencias (idioma) -> sesión -> navegación.
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <PreferencesProvider>
-        <AuthProvider>
-          <NavigationContainer theme={navigationTheme} documentTitle={documentTitle}>
-            <RootNavigator />
-          </NavigationContainer>
-        </AuthProvider>
-      </PreferencesProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <SafeAreaProvider>
+        <PreferencesProvider>
+          <AuthProvider>
+            <NavigationContainer theme={navigationTheme} documentTitle={documentTitle}>
+              <RootNavigator />
+            </NavigationContainer>
+          </AuthProvider>
+        </PreferencesProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+});

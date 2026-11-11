@@ -1,10 +1,12 @@
-// AI-assisted: see docs/AI_LOG.md #1
+// AI-assisted: see docs/AI_LOG.md #1, #11
 import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { ACCOUNT_STATUS, REGISTRATION_SECTIONS } from '../constants/registration.js';
 import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '../constants/theme.js';
 import { usePreferences } from '../context/PreferencesContext.js';
+import AppButton from './AppButton.js';
 
 const SECTION_ICONS = {
   personalData: 'person-outline',
@@ -18,11 +20,26 @@ const STATUS_DOT_COLORS = {
   [ACCOUNT_STATUS.APPROVED]: COLORS.onBrandSuccess,
 };
 
-// Resumen del registro: estado de la cuenta y avance de las tres pestañas.
+// Resumen del registro: estado de la cuenta, avance de las tres pestañas y botón "Enviar registro",
+// que solo se habilita con las tres completas y válidas (`canSubmit`).
 // progress: { personalData: bool, vehicle: bool, documents: bool }
-export default function RegistrationProgress({ progress, completedSections, accountStatus, currentSection }) {
+export default function RegistrationProgress({ progress, completedSections, accountStatus, currentSection, canSubmit, onSubmit }) {
   const { t } = usePreferences();
   const total = REGISTRATION_SECTIONS.length;
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasSubmitError, setHasSubmitError] = useState(false);
+
+  // Al enviarse, la cuenta pasa a "Pendiente de aprobación" y la app muestra el Inicio.
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    setHasSubmitError(false);
+    try {
+      await onSubmit();
+    } catch {
+      setHasSubmitError(true);
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <View style={styles.card}>
@@ -73,6 +90,15 @@ export default function RegistrationProgress({ progress, completedSections, acco
       </View>
 
       <Text style={styles.rule}>{t('registration.submitRule')}</Text>
+      {hasSubmitError ? <Text style={styles.submitError}>{t('registration.submitError')}</Text> : null}
+      <AppButton
+        title={isSubmitting ? t('registration.submitting') : t('registration.submit')}
+        icon="paper-plane-outline"
+        variant="inverse"
+        loading={isSubmitting}
+        disabled={!canSubmit}
+        onPress={handleSubmit}
+      />
     </View>
   );
 }
@@ -159,6 +185,10 @@ const styles = StyleSheet.create({
   stepStatus: {
     fontSize: 12,
     color: COLORS.textOnBrandMuted,
+  },
+  submitError: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.onBrandDanger,
   },
   rule: {
     ...TYPOGRAPHY.caption,

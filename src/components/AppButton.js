@@ -1,4 +1,4 @@
-// AI-assisted: see docs/AI_LOG.md #1
+// AI-assisted: see docs/AI_LOG.md #1, #11
 import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 
@@ -77,5 +77,10 @@ const VARIANTS = {
   danger: StyleSheet.create({
     button: { backgroundColor: COLORS.danger },
     text: { color: COLORS.textOnBrand },
+  }),
+  // Sobre fondos negros (tarjeta de avance del registro).
+  inverse: StyleSheet.create({
+    button: { backgroundColor: COLORS.surface },
+    text: { color: COLORS.textPrimary },
   }),
 };

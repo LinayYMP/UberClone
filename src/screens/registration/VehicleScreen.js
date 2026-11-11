@@ -1,4 +1,4 @@
-// AI-assisted: see docs/AI_LOG.md #1
+// AI-assisted: see docs/AI_LOG.md #1, #11
 import { useMemo } from 'react';
 
 import FormActions from '../../components/FormActions.js';
@@ -17,9 +17,11 @@ import { keepDigits, normalizePlate } from '../../utils/validators.js';
 import { minimumCapacityFor, toVehicleForm, validateVehicle } from '../../validation/vehicleForm.js';
 
 // Pestaña 2 — Vehículo: categoría, placa, marca y modelo, año, color, capacidad y foto.
-export default function VehicleScreen() {
+// Al guardar pasa a Documentos; desde Perfil y configuración vuelve atrás.
+export default function VehicleScreen({ navigation, route }) {
+  const isProfile = route?.params?.mode === 'profile';
   const { t } = usePreferences();
-  const { registration, progress, completedSections, saveVehicle } = useRegistration();
+  const { registration, progress, completedSections, canSubmit, saveVehicle, submitRegistration } = useRegistration();
 
   const { values, errors, errorCount, setValue, setValueAndTouch, touchField, validateForm } = useForm(
     () => toVehicleForm(registration.vehicle),
@@ -31,6 +33,7 @@ export default function VehicleScreen() {
     validateForm,
     save: saveVehicle,
     successKey: 'vehicle.saved',
+    onSaved: isProfile ? () => navigation.goBack() : () => navigation.navigate('Documents'),
   });
 
   const categoryOptions = useMemo(
@@ -48,12 +51,16 @@ export default function VehicleScreen() {
 
   return (
     <FormScrollView>
-      <RegistrationProgress
-        currentSection="vehicle"
-        progress={progress}
-        completedSections={completedSections}
-        accountStatus={registration.accountStatus}
-      />
+      {!isProfile ? (
+        <RegistrationProgress
+          currentSection="vehicle"
+          progress={progress}
+          completedSections={completedSections}
+          accountStatus={registration.accountStatus}
+          canSubmit={canSubmit}
+          onSubmit={submitRegistration}
+        />
+      ) : null}
 
       <SectionCard title={t('vehicle.sectionInfo')}>
         <SelectField

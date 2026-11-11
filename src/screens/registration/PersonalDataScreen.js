@@ -1,4 +1,4 @@
-// AI-assisted: see docs/AI_LOG.md #1
+// AI-assisted: see docs/AI_LOG.md #1, #11
 import { useCallback, useMemo } from 'react';
 
 import FormActions from '../../components/FormActions.js';
@@ -22,12 +22,14 @@ import { keepDigits } from '../../utils/validators.js';
 import { EMPTY_PERSONAL_DATA, toPersonalDataForm, validatePersonalData } from '../../validation/personalDataForm.js';
 
 // Pestaña 1 — Datos personales: foto, nombre, documento, celular, fecha de nacimiento, género,
-// correo e idioma. Al guardar con éxito pasa a la pestaña Vehículo.
+// correo e idioma. Al guardar con éxito pasa a la pestaña Vehículo. Desde Perfil y configuración
+// (route.params.mode = 'profile') se usa para editar y al guardar vuelve atrás.
 // (DateField se importa sin extensión para que Metro elija DateField.web.js en la web.)
-export default function PersonalDataScreen({ navigation }) {
+export default function PersonalDataScreen({ navigation, route }) {
+  const isProfile = route?.params?.mode === 'profile';
   const { t, language, setLanguage } = usePreferences();
   const { session } = useAuth();
-  const { registration, progress, completedSections, savePersonalData } = useRegistration();
+  const { registration, progress, completedSections, canSubmit, savePersonalData, submitRegistration } = useRegistration();
 
   // Primera vez: el correo se propone con el de la sesión y el idioma con el de la app.
   const { values, errors, errorCount, setValue, setValueAndTouch, touchField, validateForm } = useForm(
@@ -38,13 +40,16 @@ export default function PersonalDataScreen({ navigation }) {
     validatePersonalData,
   );
 
-  const goToVehicle = useCallback(() => navigation.navigate('Vehicle'), [navigation]);
+  const goNext = useCallback(
+    () => (isProfile ? navigation.goBack() : navigation.navigate('Vehicle')),
+    [isProfile, navigation],
+  );
   const { isSaving, feedback, handleSave } = useSectionSave({
     values,
     validateForm,
     save: savePersonalData,
     successKey: 'personalData.saved',
-    onSaved: goToVehicle,
+    onSaved: goNext,
   });
 
   const genderOptions = useMemo(() => GENDERS.map((id) => ({ value: id, label: t(`options.gender.${id}`) })), [t]);
@@ -64,12 +69,16 @@ export default function PersonalDataScreen({ navigation }) {
 
   return (
     <FormScrollView>
-      <RegistrationProgress
-        currentSection="personalData"
-        progress={progress}
-        completedSections={completedSections}
-        accountStatus={registration.accountStatus}
-      />
+      {!isProfile ? (
+        <RegistrationProgress
+          currentSection="personalData"
+          progress={progress}
+          completedSections={completedSections}
+          accountStatus={registration.accountStatus}
+          canSubmit={canSubmit}
+          onSubmit={submitRegistration}
+        />
+      ) : null}
 
       <SectionCard title={t('personalData.sectionPhoto')}>
         <PhotoField
