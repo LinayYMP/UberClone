@@ -6,10 +6,13 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "uberclone",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.uberclone.conductor"
     },
     "android": {
+      "package": "com.uberclone.conductor",
       "adaptiveIcon": {
         "backgroundColor": "#000000",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -30,7 +33,20 @@
           "microphonePermission": false
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "UberClone Conductor usa tu ubicación para mostrarte en el mapa y enviarte solicitudes mientras estás Disponible."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "trip-requests"
+        }
+      ]
     ]
   }
 }
