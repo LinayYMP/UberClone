@@ -1,4 +1,4 @@
-// AI-assisted: see docs/AI_LOG.md #1
+// AI-assisted: see docs/AI_LOG.md #1, #11
 import { Platform } from 'react-native';
 
 // Paleta inspirada en la app de conductor: negro de marca, superficies blancas
@@ -20,6 +20,7 @@ export const COLORS = {
   onBrandSuccess: '#3DDC84',
   onBrandWarning: '#FFC043',
   onBrandInfo: '#6EA0FF',
+  onBrandDanger: '#FF8A80',
   imageOverlay: 'rgba(0, 0, 0, 0.35)',
   imageBadge: 'rgba(0, 0, 0, 0.75)',
   border: '#E2E2E2',
@@ -34,6 +35,7 @@ export const COLORS = {
   danger: '#D32F2F',
   dangerSoft: '#FDECEC',
   backdrop: 'rgba(0, 0, 0, 0.45)',
+  star: '#F5A623',
 };
 
 export const SPACING = {

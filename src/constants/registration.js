@@ -1,4 +1,4 @@
-// AI-assisted: see docs/AI_LOG.md #1
+// AI-assisted: see docs/AI_LOG.md #1, #11
 // Reglas y opciones del registro del conductor (sección 2 del documento del proyecto).
 // Los validadores y los campos (maxLength, teclado) leen de aquí para no repetir números.
 
@@ -10,8 +10,23 @@ export const ACCOUNT_STATUS = {
   APPROVED: 'approved',
 };
 
-// Las tres pestañas del registro. "documents" se desarrolla en la siguiente entrega.
+// Las tres pestañas del registro.
 export const REGISTRATION_SECTIONS = ['personalData', 'vehicle', 'documents'];
+
+// Pestaña 3 — Documentos y pagos
+export const DOCUMENT_RULES = {
+  // El documento no fija el formato del número de licencia: letras y números, de 5 a 20 caracteres.
+  licenseMinLength: 5,
+  licenseMaxLength: 20,
+  // En Colombia los carros particulares nuevos hacen la primera revisión técnico-mecánica al
+  // quinto año de matrícula; antes no aplica. Se aproxima con el año del modelo.
+  technicalInspectionAfterYears: 5,
+};
+
+// Cuenta: mínimo que exige Firebase Authentication para la contraseña.
+export const ACCOUNT_RULES = {
+  passwordMinLength: 6,
+};
 
 // Pestaña 1 — Datos personales
 export const PERSONAL_RULES = {

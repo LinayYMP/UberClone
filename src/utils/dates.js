@@ -1,4 +1,4 @@
-// AI-assisted: see docs/AI_LOG.md #1
+// AI-assisted: see docs/AI_LOG.md #1, #11
 // Las fechas sin hora (nacimiento, vencimientos) se guardan como texto 'AAAA-MM-DD' en hora local,
 // así no se corren un día por la zona horaria al convertirlas a UTC.
 
@@ -53,4 +53,12 @@ export function formatDisplayDate(isoDate, language) {
   const month = pad(date.getMonth() + 1);
   const year = date.getFullYear();
   return language === 'en' ? `${month}/${day}/${year}` : `${day}/${month}/${year}`;
+}
+
+// Fecha y hora de un viaje: "10/11/2026 · 14:05" (24 horas).
+export function formatDateTime(date, language) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return '';
+  }
+  return `${formatDisplayDate(toISODate(date), language)} · ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
