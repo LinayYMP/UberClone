@@ -8,17 +8,19 @@ Usé Claude (Claude Code) como asistente de programación. Yo definí qué se co
 
 Formato según la sección 8 del documento del proyecto. Los bloques de código asistidos están marcados con `// AI-assisted: see docs/AI_LOG.md #<n>`.
 
-| Entrada | Hora (01/11/2026) | Consulta |
+| Entrada | Fecha y hora | Consulta |
 | --- | --- | --- |
-| #1 | 16:04 | Desarrollo de la primera entrega (login y pestañas 1 y 2) |
-| #2 | 16:55 | Inicialización de Git y commits |
-| #3 | 16:59 | Reorganización del historial en 6 commits |
-| #4 | 17:03 | Organización de esta bitácora |
-| #5 | 17:06 | Ideas de consultas sobre el proyecto |
-| #6 | 17:10 | Validaciones frente a la sección 2 del PDF |
-| #7 | 17:10 | `useMemo` en `useForm` |
-| #8 | 17:10 | Limpieza del `useEffect` en `RegistrationContext` |
-| #9 | 17:10 | Cómo ejecutar la app |
+| #1 | 01/11/2026 16:04 | Desarrollo de la primera entrega (login y pestañas 1 y 2) |
+| #2 | 01/11/2026 16:55 | Inicialización de Git y commits |
+| #3 | 01/11/2026 16:59 | Reorganización del historial en 6 commits |
+| #4 | 01/11/2026 17:03 | Organización de esta bitácora |
+| #5 | 01/11/2026 17:06 | Ideas de consultas sobre el proyecto |
+| #6 | 01/11/2026 17:10 | Validaciones frente a la sección 2 del PDF |
+| #7 | 01/11/2026 17:10 | `useMemo` en `useForm` |
+| #8 | 01/11/2026 17:10 | Limpieza del `useEffect` en `RegistrationContext` |
+| #9 | 01/11/2026 17:10 | Cómo ejecutar la app |
+| #10 | 03/11/2026 18:20 | Subida del repositorio a GitHub |
+| #11 | 10/11/2026 18:05 | Segunda entrega: pestaña 3, pantallas del conductor y Firebase |
 
 ---
 
@@ -283,4 +285,74 @@ podemos ir usando esas 3, y dime como ejecuto la app
 - Qué se usó / modificó / descartó: _(completar por la integrante)_.
 - Archivos y commit: Sin cambios en el código.
 - Verificación: _(completar por la integrante: ejecución en el celular o el emulador)_.
+- Aprendizaje: _(completar por la integrante)_.
+
+### Entrada #10
+- Fecha: 2026-11-03
+- Hora: 18:20
+- Integrante: Linay Yuliani Muñoz Perez
+- Herramienta: Claude (Claude Code)
+- Objetivo: Subir el repositorio a GitHub.
+- Prompt (dos mensajes seguidos):
+
+```text
+necesito subir a github
+```
+
+```text
+Inténtalo de nuevo
+```
+
+- Resumen de la respuesta: Se conectó el remoto `LinayYMP/UberClone` (vacío) y se subieron las ramas `main` y `developer`. Se comprobó que no se subieran archivos locales del entorno y se dejó el enlace para abrir el Pull Request de `developer` a `main`.
+- Qué se usó / modificó / descartó: _(completar por la integrante)_.
+- Archivos y commit: Ramas `main` (`7a8cb5d`) y `developer` (`4c79a32`) en GitHub.
+- Verificación (hecha por la herramienta): Comparación de las ramas remotas con las locales y de los archivos publicados.
+- Aprendizaje: _(completar por la integrante)_.
+
+### Entrada #11
+- Fecha: 2026-11-10
+- Hora: 18:05 a 19:15
+- Integrante: Linay Yuliani Muñoz Perez
+- Herramienta: Claude (Claude Code)
+- Objetivo: Desarrollar la pestaña 3 del registro y todas las pantallas del conductor, con los estados del viaje, los hooks obligatorios y la base de datos en Firebase.
+- Prompt (mensajes en orden, tal como se escribieron):
+
+```text
+necesito realizar la pantalla 3 y todas las pantallas del conductor, ten encuenta los estados de un viaje y el uso obligatorio de hooks
+
+necesito que todo guarde base de datos de firebase, abierta ya en el  navegador
+```
+
+```text
+continua
+```
+
+```text
+si falla el firestore hazlo en la web, que ya esta abierto y continua con lod emas
+```
+
+```text
+la consola de firebase, logueada con correo y abierta en el navegador de chrome
+```
+
+```text
+ya puse la extension de claude en chrome  y esta funcional
+```
+
+```text
+crea una base de datos llamada UberClone y trabaja sobre ella
+```
+
+```text
+necesito que al terminar, todo me guarde en esa base de datos, estamos?
+```
+
+```text
+todo esta informaicon de registro del conductor ya guarda en base de datos?
+```
+
+- Resumen de la respuesta: Se creó el proyecto de Firebase **UberClone** (`uberclone-dd7cc`) con Authentication por correo y contraseña, Firestore, reglas de seguridad e índices, y la app pasó del servidor simulado a Firebase. Se agregaron la creación de cuenta, la pestaña Documentos con el envío del registro, el Inicio con mapa y disponibilidad, la solicitud con 15 segundos, el viaje en curso, el cobro (Mercado Pago o efectivo), las ganancias, el historial y el perfil con Drawer, además de un backend Node/Express para pagos, despacho y un simulador de pasajero.
+- Qué se usó / modificó / descartó: _(completar por la integrante)_.
+- Archivos y commit: `src/**` (servicios de Firebase, contextos, hooks, pantallas, navegación, componentes, utilidades), `backend/**`, `firebase.json`, `firestore.rules`, `firestore.indexes.json`, `scripts/emulators.mjs`, `tests/*.test.mjs`, `README.md` — commits `56e2177` a `20ce5cc` y el commit «Actualiza el README y la bitácora de uso de IA» (rama `developer`).
+- Verificación (hecha por la herramienta): 46 pruebas unitarias; compilación para Android, iOS y web; `expo-doctor` 20/20; recorrido completo con el emulador de Firebase: crear cuenta, tres pestañas, envío y aprobación del registro, Disponible, solicitud vencida a los 15 s, solicitud aceptada, pasajero a bordo, finalizar, cobro en efectivo, ganancias, historial con filtros, detalle, cancelación del pasajero y perfil. También se probaron las reglas de seguridad (aprobar un pago o crear viajes desde la app es rechazado). Pendiente de verificar por mí: el pago con Mercado Pago (necesita el access token de prueba), las notificaciones FCM (necesitan build de desarrollo) y la app en el celular contra el proyecto real.
 - Aprendizaje: _(completar por la integrante)_.

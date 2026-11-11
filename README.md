@@ -1,6 +1,6 @@
 # UberClone — Versión Conductor
 
-Aplicación móvil multiplataforma (Android, iOS y web) inspirada en la app de conductor de Uber, construida con **React Native + Expo SDK 58**. Este repositorio contiene la **primera entrega**: inicio de sesión y las pestañas 1 (Datos personales) y 2 (Vehículo) del registro del conductor.
+Aplicación móvil multiplataforma (Android, iOS y web) inspirada en la app de conductor de Uber, construida con **React Native + Expo SDK 58** y **Firebase** (Authentication + Cloud Firestore). El conductor se registra, recibe solicitudes en tiempo real, las acepta o rechaza en 15 segundos, hace el viaje, cobra con Mercado Pago (modo de prueba) o en efectivo y consulta sus ganancias e historial.
 
 ## Integrantes
 
@@ -9,174 +9,196 @@ Aplicación móvil multiplataforma (Android, iOS y web) inspirada en la app de c
 | Linay Yuliani Muñoz Perez | Desarrollo |
 | _(agregar a los demás integrantes)_ | |
 
-## Alcance de la primera entrega
+## Funcionalidades
 
-| Módulo | Estado |
+| Módulo | Pantallas |
 | --- | --- |
-| Inicio de sesión (correo + contraseña, validaciones, errores, carga, sesión persistente, cierre de sesión) | ✅ Implementado |
-| Registro — Pestaña 1: Datos personales | ✅ Implementado |
-| Registro — Pestaña 2: Vehículo | ✅ Implementado |
-| Navegación Stack (sesión) + Tabs (registro) | ✅ Implementado |
-| Registro — Pestaña 3: Documentos y pagos, botón **Enviar registro** | ⏳ Siguiente entrega |
-| Inicio con mapa, solicitudes, viaje, cobro, ganancias, historial, Drawer de perfil | ⏳ Entregas posteriores |
+| Cuenta | Iniciar sesión y Crear cuenta (Firebase Authentication, correo y contraseña) |
+| Registro (Tabs) | Datos personales · Vehículo · Documentos y pagos · botón **Enviar registro** (solo con las tres pestañas completas y válidas) |
+| Flujo del viaje (Stack) | Inicio (mapa + Disponible/No disponible) · Solicitud entrante (15 s) · Viaje en curso · Cobro y resumen |
+| Menú lateral (Drawer) | Inicio · Ganancias · Historial (con detalle) · Perfil y configuración |
+| Backend (`backend/`) | Cobro con Mercado Pago Checkout Pro, despacho de solicitudes al conductor más cercano, simulador de pasajero |
 
-## Requisitos
+## Puesta en marcha
 
-- Node.js 20 o superior (probado con Node 24) y npm.
-- App **Expo Go** (SDK 58) en el celular, o un emulador Android / simulador iOS.
-
-## Instalación y ejecución
+### 1. Instalar
 
 ```bash
 npm install
+```
+```bash
+npm install --prefix backend
+```
+
+### 2. Configurar Firebase (proyecto real)
+
+El archivo `.env` (no se sube a Git) ya apunta al proyecto **UberClone** (`uberclone-dd7cc`). Si clonas el repositorio, copia `.env.example` como `.env` y llena los valores de *Configuración del proyecto → Tus apps → App web*.
+
+En la consola de Firebase el proyecto ya tiene:
+- Authentication con **Correo electrónico/contraseña** habilitado.
+- Cloud Firestore (ubicación `nam5`) con las reglas de [`firestore.rules`](firestore.rules) publicadas.
+- Los índices de [`firestore.indexes.json`](firestore.indexes.json) (historial por conductor y fecha, y por método de pago).
+
+### 3. Configurar el backend
+
+Copia `backend/.env.example` como `backend/.env` y completa:
+- **Cuenta de servicio de Firebase**: *Configuración del proyecto → Cuentas de servicio → Generar nueva clave privada*. Guarda el archivo como `backend/serviceAccountKey.json` (está en `.gitignore`).
+- **Mercado Pago**: el *access token de prueba* de tu cuenta vendedora de prueba en `MERCADOPAGO_ACCESS_TOKEN`.
+
+### 4. Ejecutar
+
+Backend (pagos y despacho de solicitudes):
+```bash
+npm run backend
+```
+App:
+```bash
 npx expo start
 ```
+Escanea el QR con **Expo Go** (SDK 58) o presiona `a` para Android y `w` para web. En el celular, `EXPO_PUBLIC_BACKEND_URL` debe usar la IP del computador (por ejemplo `http://192.168.1.10:3001`), no `localhost`.
 
-En la terminal de Expo: escanear el código QR con Expo Go, o presionar `a` (Android), `i` (iOS) o `w` (web).
+### 5. Probar el flujo completo
+
+1. Crea una cuenta en la app y completa las tres pestañas. Toca **Enviar registro**: la cuenta queda *Pendiente de aprobación*.
+2. Aprueba la cuenta, como permite el documento, cambiando el campo en la base de datos:
+   ```bash
+   npm run aprobar -- correo@ejemplo.com
+   ```
+   (o en la consola: `drivers/{uid}` → `accountStatus` = `approved`). La app lo ve al instante.
+3. En el Inicio activa **Disponible**.
+4. Crea una solicitud como si fueras el pasajero:
+   ```bash
+   npm run simular:viaje -- --metodo efectivo --categoria economy --propina 2000
+   ```
+   Opciones: `--metodo efectivo|mercadopago`, `--categoria economy|xl|premium`, `--propina N`, `--conductor correo`.
+5. Para simular que el pasajero cancela:
+   ```bash
+   npm run simular:cancelar
+   ```
+
+### Desarrollo sin tocar la base de datos real (emuladores)
 
 ```bash
-npm run android   # abre directamente en el emulador Android
-npm run web       # abre la versión web en el navegador
-npm test          # 37 pruebas unitarias (validaciones, fechas, servicios, idiomas)
+npm run emuladores
 ```
+Crea un `.env.local` con `EXPO_PUBLIC_USE_FIREBASE_EMULATOR=true` y `EXPO_PUBLIC_FIREBASE_PROJECT_ID=demo-uberclone`. En `backend/.env` descomenta las variables del emulador. Se necesita Java 17 o superior; el script corrige el problema de Java en Windows con usuarios que tienen "ñ" en la ruta.
 
-### Cuenta de prueba
+### Pruebas
 
-El backend de esta entrega es un **servidor simulado en memoria** (ver [Decisiones técnicas](#decisiones-técnicas)). Las credenciales de prueba están en [`src/services/mock/seedDrivers.js`](src/services/mock/seedDrivers.js). La cuenta empieza con el registro vacío (`Registro incompleto`).
-
-> Los datos guardados en las pestañas se conservan mientras la app está abierta (incluso al cerrar y volver a iniciar sesión), y vuelven al estado inicial al recargar la app. Es intencional: el documento prohíbe guardar datos personales en AsyncStorage, y la base de datos real llega en la siguiente entrega.
-
-## Flujo de la aplicación
-
+```bash
+npm test
 ```
-                 ┌──────────────────────┐
-  abrir app ───► │ ¿Sesión guardada?    │── sí ──┐
-                 └──────────┬───────────┘        │
-                            no                   │
-                 ┌──────────▼───────────┐        │
-                 │ Login                │        │
-                 │ correo + contraseña  │        │
-                 └──────────┬───────────┘        │
-          error: mensaje    │ éxito              │
-          debajo / encima   │                    │
-          del botón         ▼                    ▼
-                 ┌─────────────────────────────────────────┐
-                 │ Registro del conductor (Bottom Tabs)    │
-                 │  ┌─────────────────┐ ┌───────────────┐  │
-                 │  │ Datos personales│→│ Vehículo      │  │
-                 │  └─────────────────┘ └───────────────┘  │
-                 │  Encabezado: cerrar sesión ⟶ Login      │
-                 └─────────────────────────────────────────┘
-```
+46 pruebas de funciones puras: validaciones de las tres pestañas, tarifa (incluido el ejemplo de 8,5 km y 22 min del documento), estados del viaje, ganancias, saldo, fechas, rutas e idiomas.
 
-- **Navegación según el resultado de la autenticación**: `RootNavigator` muestra `Login` o el módulo del conductor según el estado de `AuthContext`. Al cambiar la sesión, React Navigation cambia de pantalla y el botón "atrás" no puede volver al login.
-- Al guardar la pestaña 1 con éxito, la app pasa sola a la pestaña Vehículo.
-- La tarjeta **Tu registro** muestra el estado de la cuenta y el avance de las tres pestañas; cada pestaña completa muestra un check verde en la barra inferior.
+## Cómo se cumple el documento
 
-## Requisitos del documento y cómo se cumplen
+### Registro (sección 2)
 
-### Pestaña 1 — Datos personales
+- **Datos personales**: foto (cámara o galería), nombre (máx. 50, solo letras), documento (6–10 dígitos), celular (10 dígitos), fecha de nacimiento (18 años o más), género, correo e idioma.
+- **Vehículo**: categoría (Económico, XL, Premium), placa ABC123 (en mayúsculas), marca y modelo (máx. 30), año (≤ año actual), color, capacidad (XL ≥ 6) y foto.
+- **Documentos y pagos**: licencia (número, foto y vencimiento posterior a hoy), SOAT (foto y vencimiento), revisión técnico-mecánica (foto y vencimiento, **solo si aplica por el año del vehículo**), correo de Mercado Pago y casilla obligatoria de términos con el **20 % de comisión visible**. No se piden ni se guardan números de cuenta ni de tarjeta.
+- Errores debajo de cada campo (nunca en `Alert`). **Enviar registro** solo se habilita con las tres pestañas completas y válidas. La cuenta queda en `pending_approval` y no puede ponerse Disponible hasta `approved`. Las reglas de Firestore impiden que el conductor se apruebe a sí mismo.
 
-| Campo | Regla del documento | Implementación |
-| --- | --- | --- |
-| Foto de perfil | Cámara o galería; obligatoria | `PhotoField` + `useImagePicker` (expo-image-picker). Hoja inferior con "Tomar foto" / "Elegir de la galería". Permiso de cámara denegado → mensaje debajo del campo |
-| Nombre completo | Máx. 50; solo letras y espacios | Contador `n/50`; acepta tildes y ñ; se normalizan espacios al guardar |
-| Documento de identidad | Numérico, 6 a 10 dígitos | Teclado numérico; se descartan caracteres no numéricos |
-| Número de celular | Numérico, 10 dígitos | Ídem; al pegar `300-123-4567` quedan los 10 dígitos |
-| Fecha de nacimiento | Selector de fecha; mayor de 18 años | Selector nativo (Android/iOS) o del navegador (web); fecha máxima = hoy hace 18 años; validación de edad |
-| Género | Lista desplegable | `SelectField` (hoja inferior) |
-| Correo electrónico | Validación de @ y dominio | Se propone el correo de la sesión; se guarda en minúsculas |
-| Idioma | Español / inglés | `SegmentedField`; cambia el idioma de **toda la app** al instante y se guarda en AsyncStorage (preferencia) |
+### Estados del viaje (sección 3)
 
-### Pestaña 2 — Vehículo
+El campo `status` controla la pantalla ([`TripFlowNavigator`](src/navigation/TripFlowNavigator.js)):
 
-| Campo | Regla del documento | Implementación |
-| --- | --- | --- |
-| Categoría | Económico, XL, Premium | `SelectField`; ids `economy`, `xl`, `premium` (modelo de datos de la sección 6) |
-| Placa | ABC123; a mayúsculas antes de validar | Se convierte a mayúsculas mientras se escribe y se quitan espacios y guiones |
-| Marca y modelo | Texto, máx. 30 cada uno | Dos campos con contador |
-| Año | 4 dígitos, no mayor al año actual | Validación con el año en curso |
-| Color | Lista desplegable | `SelectField` con muestra del color |
-| Capacidad de pasajeros | Numérico; XL exige mínimo 6 | Al elegir XL aparece la ayuda "mínimo 6"; error si es menor |
-| Foto del vehículo | Obligatoria; debe verse la placa | `PhotoField` (recorte 4:3) con la indicación "La placa debe verse claramente" |
-
-### Reglas generales
-
-- **Ningún campo puede quedar nulo o vacío** (tampoco con solo espacios).
-- **Los errores se muestran debajo de cada campo, nunca en un `Alert`**: aparecen al salir del campo o al intentar guardar, y se actualizan mientras se corrige. Junto al botón se indica cuántos campos faltan.
-- **AsyncStorage solo para la sesión y las preferencias** (`@uberclone/session`, `@uberclone/language`). Ningún dato personal, de documentos ni de pago se guarda en el dispositivo.
-- El servicio **vuelve a validar** los datos antes de guardar: la validación de la app no es la única barrera.
-
-### Hooks exigidos por el documento
-
-| Hook | Dónde |
+| Estado | Qué ve el conductor |
 | --- | --- |
-| `useState` | Formularios (`useForm`), estados de carga y mensajes de cada pantalla |
-| `useEffect` con limpieza | Restaurar sesión (`AuthContext`), leer idioma (`PreferencesContext`), cargar el registro (`RegistrationContext`): descartan la respuesta si el componente se desmonta |
-| `useContext` | Sesión del conductor (`AuthContext`), registro (`RegistrationContext`), idioma (`PreferencesContext`) |
-| `useMemo` / `useCallback` | Errores derivados de los valores (`useForm`), avance del registro, opciones de las listas, funciones de los contextos |
-| Hooks personalizados | `useForm`, `useImagePicker`, `useSectionSave`. Los del documento (`useDriverLocation`, `useTripRequests`, `useEarnings`) corresponden a módulos de entregas posteriores |
+| `requested` | Tarjeta de solicitud entrante con temporizador de 15 s. Si rechaza o vence el tiempo, el despachador la ofrece al siguiente conductor o queda `rejected` |
+| `accepted` → `driver_arriving` | Viaje en curso: ruta al punto de recogida (se calcula una sola vez al aceptar) |
+| `in_progress` | Tras tocar **Pasajero a bordo**: ruta al destino y botón **Finalizar viaje** |
+| `completed` | Cobro y resumen: tarifa final, comisión, propina, ganancia neta y estado del pago |
+| `paid` | Pago aprobado por la pasarela o efectivo confirmado |
+| `cancelled` | Cancelado por el conductor o el pasajero antes de `in_progress` |
+
+Las transiciones válidas están en [`constants/trips.js`](src/constants/trips.js) y se verifican antes de cada cambio.
+
+### Hooks obligatorios
+
+| Requisito | Dónde |
+| --- | --- |
+| `useState` (disponibilidad, solicitud activa, formularios) | `HomeScreen`, `useTripRequests`, `useForm` |
+| `useEffect` con limpieza: ubicación | `useDriverLocation` (detiene `watchPosition` y el envío a Firestore al pasar a No disponible o salir del Inicio) |
+| `useEffect` con limpieza: temporizador | `useCountdown` (15 s de la solicitud) |
+| `useEffect` con limpieza: tiempo real | `onSnapshot` en `AuthContext`, `RegistrationContext`, `TripContext`, `useTripRequests`, `useEarnings` |
+| `useContext` (sesión y viaje activo) | `AuthContext`, `TripContext` (y `RegistrationContext`, `PreferencesContext`) |
+| `useMemo` (totales de ganancias) | `useEarnings` |
+| `useCallback` (aceptar y rechazar) | `handleAccept` / `handleReject` en `HomeScreen` |
+| Hooks personalizados mínimos | `useDriverLocation`, `useTripRequests`, `useEarnings` (más `useForm`, `useCountdown`, `useTripHistory`, `useImagePicker`, `useSectionSave`) |
+| AsyncStorage solo para preferencias y sesión | idioma y último estado de disponibilidad ([`storage.js`](src/services/storage.js)); la sesión la guarda Firebase Auth |
+
+### Pagos (sección 4)
+
+1. Al finalizar, la app calcula la tarifa final con `calculateFare`, la misma función de la estimación.
+2. En **Cobrar con Mercado Pago**, la app envía `tripId` y el monto al backend con el token de sesión de Firebase.
+3. El backend verifica el conductor y el monto, y crea la preferencia con el `access_token`, que solo vive en `backend/.env`.
+4. La app abre el checkout y el pasajero paga con una tarjeta de prueba.
+5. Mercado Pago vuelve al backend (URL de retorno o webhook). El backend consulta el pago y actualiza `paymentStatus`, `paymentId` y `status: paid`.
+6. La app ve el cambio en tiempo real.
+
+**Efectivo**: el conductor confirma el cobro y la comisión se descuenta de su saldo (puede quedar negativo). Las reglas de Firestore impiden que la app marque un pago como aprobado.
+
+### Tarifa y ganancias (sección 5)
+
+[`src/config/pricing.js`](src/config/pricing.js) concentra los valores: base 3.500, 1.200/km, 250/min, mínimo 6.000, multiplicadores 1,0 / 1,4 / 1,8 y comisión del 20 %. La tarifa se redondea al múltiplo de 100 antes de la comisión, y cada viaje guarda su `commissionRate`.
+
+La pantalla Ganancias muestra, para hoy, la semana y el mes: viajes, total facturado, comisiones, propinas, ganancia neta y promedio, calculados con `useMemo`. También muestra el saldo: ganancias por pasarela menos las comisiones de los viajes en efectivo.
+
+### Historial (sección 6)
+
+`FlatList` del más reciente al más antiguo, con filtros Hoy, Semana, Mes y Rango de fechas, y filtro por método de pago. Carga 20 viajes por página y muestra un mensaje cuando no hay resultados. El detalle dibuja la ruta guardada con `Polyline` (en Android/iOS), sin volver a pedirla.
+
+### APIs (sección 7)
+
+| Servicio | Uso |
+| --- | --- |
+| Firestore `onSnapshot` | Solicitudes, viaje activo, aprobación de la cuenta y ganancias en tiempo real |
+| `expo-location` (`watchPositionAsync`) | Ubicación del conductor, enviada a Firestore cada 5 s mientras está Disponible |
+| `react-native-maps` | Mapa del conductor y rutas con `Polyline` (en la web se muestra OpenStreetMap) |
+| Firebase Cloud Messaging | El backend avisa al conductor de solicitudes nuevas con la app en segundo plano. Requiere una **build de desarrollo** (Expo Go no recibe push en Android) y `google-services.json` en la raíz |
+| OSRM | Ruta, distancia y duración (gratis). Con `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` se usa Google Directions |
+| Nominatim | El simulador convierte coordenadas en direcciones (1 petición por segundo) |
+| Cloudinary (opcional) | Fotos de perfil, vehículo y documentos. Sin configurarlo se guarda la ruta local de la foto |
+
+## Modelo de datos (Firestore)
+
+- `drivers/{uid}`: `email`, `accountStatus`, `personalData`, `vehicle`, `documents`, `isAvailable`, `location {lat, lng}`, `locationUpdatedAt`, `fcmToken`.
+- `trips/{id}`: `driverId`, `passengerId`, `origin` / `destination {lat, lng, address}`, `distanceKm`, `durationMin`, `category`, `fare`, `commission`, `tip`, `driverEarnings`, `commissionRate`, `paymentMethod`, `paymentStatus`, `paymentId`, `status`, `rating`, `createdAt`, `completedAt`, más `route` (para el `Polyline`), `offeredTo` y `rejectedDriverIds` (despacho).
 
 ## Arquitectura
 
 ```
 UberClone/
-├── App.js                      # Proveedores (preferencias → sesión) + NavigationContainer
-├── app.json                    # Nombre, plugins (image-picker con textos de permisos, datetimepicker, expo-font)
+├── App.js · app.json · app.config.js
+├── firebase.json · firestore.rules · firestore.indexes.json · .firebaserc
 ├── src/
-│   ├── components/             # UI reutilizable, sin acceso al servidor
-│   │   ├── form/               # TextField, SelectField, DateField(.web), SegmentedField, PhotoField…
-│   │   ├── AppButton.js · BottomSheet.js · ListOption.js · SectionCard.js · InlineMessage.js
-│   │   ├── FormScrollView.js · FormActions.js · RegistrationProgress.js · LogoutButton.js
-│   │   └── LoadingView.js · ErrorView.js
-│   ├── constants/              # theme.js (colores, espaciados, tipografía) · registration.js (reglas y opciones)
-│   ├── context/                # AuthContext · RegistrationContext · PreferencesContext
-│   ├── hooks/                  # useForm · useImagePicker · useSectionSave
-│   ├── i18n/                   # es.js · en.js · translate()
-│   ├── navigation/             # RootNavigator (Stack) · RegistrationNavigator (Tabs)
-│   ├── screens/
-│   │   ├── auth/LoginScreen.js
-│   │   └── registration/       # PersonalDataScreen (pestaña 1) · VehicleScreen (pestaña 2)
-│   ├── services/               # Única capa que habla con el "servidor"
-│   │   ├── authService.js · driverService.js · storage.js (AsyncStorage) · serviceError.js
-│   │   └── mock/               # mockServer.js (en memoria) · seedDrivers.js (cuenta de prueba)
-│   ├── utils/                  # validators.js · dates.js (funciones puras)
-│   └── validation/             # loginForm.js · personalDataForm.js · vehicleForm.js
-├── tests/                      # node:test — se ejecutan con `npm test`
-└── docs/AI_LOG.md              # Bitácora de uso de IA
+│   ├── config/pricing.js           # tarifas y comisión
+│   ├── constants/                  # tema, reglas del registro, estados del viaje
+│   ├── context/                    # AuthContext · RegistrationContext · TripContext · PreferencesContext
+│   ├── hooks/                      # useDriverLocation · useTripRequests · useEarnings · useCountdown · useTripHistory · useForm…
+│   ├── i18n/                       # español / inglés
+│   ├── navigation/                 # RootNavigator (Stack) · RegistrationNavigator (Tabs) · MainNavigator (Drawer) · TripFlowNavigator (Stack)
+│   ├── screens/                    # auth/ · registration/ · main/ · trip/
+│   ├── components/                 # formularios, mapa, tarjeta de solicitud, desglose de tarifa…
+│   ├── services/                   # firebase/ · authService · driverService · tripService · paymentService · routingService · mediaService · notificationService · storage
+│   ├── utils/                      # calculateFare · earnings · geo · dates · validators · historyFilters
+│   └── validation/                 # login · crear cuenta · pestañas 1, 2 y 3
+├── backend/                        # Node.js + Express: pagos, despachador, simulador
+├── scripts/emulators.mjs           # emuladores de Firebase
+└── tests/                          # node:test
 ```
 
-**Capas:** las pantallas guardan el estado del formulario y combinan componentes; los contextos comparten la sesión y el registro; los servicios son la única puerta al servidor; las validaciones y utilidades son funciones puras probadas con Node, sin abrir la app. Las mismas funciones de validación se usan en la app y en el servicio.
+## Decisiones y supuestos
 
-## Decisiones técnicas
-
-1. **Pocket Desk no estaba disponible** en el equipo ni en GitHub, así que se tomaron como referencia los proyectos anteriores (`pokedex-explorer` y `reservas_clases_ingles`): Expo + JavaScript, carpetas por capa, identificadores en inglés, textos de interfaz traducidos y comentarios en español, pruebas con `node --test` e imports con extensión `.js`.
-2. **JavaScript en lugar de TypeScript**: es lo que usan los proyectos anteriores y los nombres de archivo del documento (`src/config/pricing.js`, `src/utils/calculateFare.js`).
-3. **React Navigation** (native-stack + bottom-tabs) en lugar de Expo Router: el documento pide explícitamente Stack, Tabs y Drawer, y el proyecto de reservas usa React Navigation.
-4. **Servidor simulado**: `authService` y `driverService` exponen funciones `async` con la forma que tendrán con Firebase (Authentication + Firestore) o MongoDB. Para conectar el backend real solo se reemplaza la implementación de esos dos archivos; pantallas y contextos no cambian. Tiene una demora de red simulada para que se vean los estados de carga.
-5. **Mismo mensaje para correo inexistente y contraseña incorrecta**: no revela qué cuentas existen.
-6. **Idioma**: el selector de la pestaña 1 cambia toda la interfaz (es/en) sin librerías externas; una prueba verifica que ambos diccionarios tengan las mismas claves.
-7. **Hojas inferiores** (`BottomSheet`) para listas, origen de foto y confirmación de cierre de sesión, en lugar de `Alert` (que en la web no muestra botones).
-8. **Selector de fecha**: `@react-native-community/datetimepicker` en Android/iOS; en la web se usa `<input type="date">` (`DateField.web.js`), porque la librería no soporta web.
-9. **Fechas como texto `AAAA-MM-DD`** en hora local, para evitar corrimientos de un día por zona horaria.
-
-## Dudas e inconsistencias del documento
-
-Se resolvieron con la opción más conservadora; conviene confirmarlas con el docente:
-
-1. **Inicio de sesión**: el documento menciona la sesión y el cierre de sesión, pero no define el método de autenticación ni incluye una contraseña en el registro. Se implementó correo + contraseña con una cuenta de prueba; **falta definir cómo se crea la cuenta** (¿Firebase Auth con correo y contraseña antes de las pestañas?).
-2. **"Mayor de 18 años"**: se interpretó como mayoría de edad (18 años cumplidos o más).
-3. **Opciones de las listas** de Género y Color: el documento no las enumera; se usaron opciones comunes (`src/constants/registration.js`), fáciles de cambiar.
-4. **Idioma "mismo selector de la app del pasajero"**: no hay especificación visual de ese selector; se usó un control segmentado Español / English.
-5. **Botón Enviar registro**: solo puede habilitarse con las tres pestañas, y la pestaña Documentos es de la siguiente entrega. Por ahora la tarjeta **Tu registro** muestra el avance y la regla.
-6. **Fotos**: el documento recomienda Cloudinary; en esta entrega se guarda la URI local de la imagen. La subida a Cloudinary se hace al conectar el backend.
-
-## Pendiente para las siguientes entregas
-
-- Pestaña 3 (Documentos y pagos), botón **Enviar registro** y paso a estado `pending_approval`.
-- Backend real (Firebase Authentication + Firestore o MongoDB) y subida de fotos a Cloudinary; `.env.example` con los nombres de las variables cuando existan llaves.
-- Pantallas de Inicio (mapa y disponibilidad), solicitud entrante, viaje, cobro, ganancias, historial y Drawer de perfil/configuración, con los hooks `useDriverLocation`, `useTripRequests` y `useEarnings`.
+1. **Revisión técnico-mecánica**: se exige desde el quinto año del vehículo, como los carros particulares en Colombia; se calcula con el año del modelo. Se cambia en `constants/registration.js`.
+2. **Número de licencia**: el documento no fija su formato; se aceptan letras y números (5 a 20).
+3. **Solicitudes**: no hay app de pasajero en este repositorio. El simulador crea solicitudes con el mismo modelo de datos y la misma función de tarifa.
+4. **Calificación del pasajero**: la registra el conductor en Cobro y resumen (1 a 5).
+5. **Disponibilidad**: `isAvailable` en Firestore solo es `true` mientras el conductor está en el Inicio con el interruptor activo. Al salir o al aceptar un viaje se apaga, y el interruptor se recuerda en AsyncStorage.
+6. **Fotos**: el documento recomienda Cloudinary porque Firebase Storage puede exigir el plan de pago. Mientras no se configure, se guarda la ruta local de la foto (solo se ve en ese dispositivo).
+7. **Mercado Pago**: el regreso automático y el webhook necesitan una URL pública HTTPS (por ejemplo, ngrok en `PUBLIC_BACKEND_URL`). Sin ella, el pago se confirma cuando el pasajero toca "Volver al sitio".
 
 ## Uso de IA
 
-Todo uso de herramientas de IA se registra en la bitácora [`docs/AI_LOG.md`](docs/AI_LOG.md). Los bloques asistidos están marcados en el código con `// AI-assisted: see docs/AI_LOG.md #<n>`.
+Todo uso de herramientas de IA se registra en [`docs/AI_LOG.md`](docs/AI_LOG.md). Los bloques asistidos están marcados con `// AI-assisted: see docs/AI_LOG.md #<n>`.
