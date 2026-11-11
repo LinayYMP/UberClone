@@ -1,0 +1,44 @@
+rules_version = '2';
+
+// AI-assisted: see docs/AI_LOG.md #11
+// Reglas de seguridad de Firestore. El backend (Firebase Admin) no pasa por estas reglas:
+// solo él crea solicitudes, las asigna a conductores y confirma pagos de la pasarela.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function unchanged(field) {
+      return request.resource.data.get(field, null) == resource.data.get(field, null);
+    }
+
+    // Perfil y registro del conductor: solo el propio conductor lo lee y lo edita.
+    // No puede aprobarse a sí mismo: solo pasa de "incomplete" a "pending_approval".
+    match /drivers/{driverId} {
+      allow read: if signedIn() && request.auth.uid == driverId;
+      allow create: if signedIn() && request.auth.uid == driverId
+        && request.resource.data.accountStatus == 'incomplete';
+      allow update: if signedIn() && request.auth.uid == driverId
+        && (unchanged('accountStatus')
+          || (resource.data.accountStatus == 'incomplete'
+            && request.resource.data.accountStatus == 'pending_approval'));
+    }
+
+    // Viajes: los ve el conductor al que se ofrecieron o que los aceptó.
+    // El conductor no puede cambiar el pasajero, el método de pago ni marcar un pago como aprobado.
+    match /trips/{tripId} {
+      allow read: if signedIn()
+        && (resource.data.driverId == request.auth.uid || resource.data.offeredTo == request.auth.uid);
+      allow update: if signedIn()
+        && (resource.data.driverId == request.auth.uid || resource.data.offeredTo == request.auth.uid)
+        && unchanged('passengerId')
+        && unchanged('paymentMethod')
+        && unchanged('paymentId')
+        && (unchanged('paymentStatus')
+          || request.resource.data.paymentStatus in ['pending', 'cash']);
+      allow create, delete: if false;
+    }
+  }
+}

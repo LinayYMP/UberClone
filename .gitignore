@@ -42,3 +42,13 @@ yarn-error.*
 
 # variables de entorno (el documento exige excluir .env de Git)
 .env
+
+# Backend: llaves secretas y cuenta de servicio de Firebase
+backend/.env
+backend/serviceAccountKey.json
+*-firebase-adminsdk-*.json
+
+# Emuladores de Firebase
+firestore-debug.log
+firebase-debug.log
+ui-debug.log

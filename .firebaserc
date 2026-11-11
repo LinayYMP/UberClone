@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "demo-uberclone",
+    "uberclone": "uberclone-dd7cc"
+  }
+}
